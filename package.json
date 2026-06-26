@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.0",
+    "fabric": "^5.5.2"
+  }
+}
