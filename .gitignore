@@ -1,0 +1,6 @@
+node_modules/
+!node_modules/fabric/dist/fabric.min.js
+!node_modules/@fortawesome/fontawesome-free/css/all.min.css
+!node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2
+!node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2
+!node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
