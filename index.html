@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generador de Stickers de Velas</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">
+      <i class="fa-solid fa-fire"></i>
+      <span>CandleSticker</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="btn-new" title="Nuevo proyecto">
+        <i class="fa-solid fa-plus"></i> Nuevo
+      </button>
+      <button class="btn btn-ghost" id="btn-templates" title="Plantillas">
+        <i class="fa-solid fa-table-cells-large"></i> Plantillas
+      </button>
+      <div class="size-selector-wrap">
+        <label>Tamaño:</label>
+        <select id="sticker-size">
+          <option value="4x2">4×2 pulg (etiqueta)</option>
+          <option value="3x3" selected>3×3 pulg (cuadrado)</option>
+          <option value="2x2">2×2 pulg (pequeño)</option>
+          <option value="5x2">5×2 pulg (alargado)</option>
+          <option value="custom">Personalizado</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-export">
+        <i class="fa-solid fa-download"></i> Exportar
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- ═══ PANEL IZQUIERDO: HERRAMIENTAS ═══ -->
+    <aside class="panel-left">
+      <nav class="tool-tabs">
+        <button class="tab-btn active" data-tab="tab-background">
+          <i class="fa-solid fa-image"></i><span>Fondo</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-text">
+          <i class="fa-solid fa-font"></i><span>Texto</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-image">
+          <i class="fa-solid fa-photo-film"></i><span>Imagen</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-elements">
+          <i class="fa-solid fa-fire-flame-curved"></i><span>Elementos</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-shapes">
+          <i class="fa-solid fa-shapes"></i><span>Formas</span>
+        </button>
+      </nav>
+
+      <!-- TAB: FONDO -->
+      <div class="tab-content active" id="tab-background">
+        <h3 class="section-title">Tipo de Fondo</h3>
+        <div class="bg-type-grid">
+          <button class="bg-type-btn active" data-type="solid">
+            <i class="fa-solid fa-square"></i><span>Color</span>
+          </button>
+          <button class="bg-type-btn" data-type="gradient">
+            <i class="fa-solid fa-circle-half-stroke"></i><span>Degradado</span>
+          </button>
+          <button class="bg-type-btn" data-type="image">
+            <i class="fa-solid fa-image"></i><span>Imagen</span>
+          </button>
+          <button class="bg-type-btn" data-type="pattern">
+            <i class="fa-solid fa-border-all"></i><span>Patrón</span>
+          </button>
+        </div>
+
+        <!-- Fondo: Color sólido -->
+        <div class="bg-section" id="bg-solid">
+          <label class="field-label">Color de fondo</label>
+          <div class="color-row">
+            <input type="color" id="bg-color" value="#fdf3e3" class="color-pick" />
+            <input type="text" id="bg-color-hex" value="#fdf3e3" class="hex-input" maxlength="7" />
+          </div>
+          <label class="field-label">Colores rápidos</label>
+          <div class="quick-colors" id="bg-quick-colors">
+            <div class="qc" style="background:#fdf3e3" data-color="#fdf3e3"></div>
+            <div class="qc" style="background:#fff8dc" data-color="#fff8dc"></div>
+            <div class="qc" style="background:#f5deb3" data-color="#f5deb3"></div>
+            <div class="qc" style="background:#ffe4b5" data-color="#ffe4b5"></div>
+            <div class="qc" style="background:#ffc0cb" data-color="#ffc0cb"></div>
+            <div class="qc" style="background:#e8d5c4" data-color="#e8d5c4"></div>
+            <div class="qc" style="background:#d4e8c2" data-color="#d4e8c2"></div>
+            <div class="qc" style="background:#c2d4e8" data-color="#c2d4e8"></div>
+            <div class="qc" style="background:#1a1a2e" data-color="#1a1a2e"></div>
+            <div class="qc" style="background:#2d1b00" data-color="#2d1b00"></div>
+          </div>
+        </div>
+
+        <!-- Fondo: Degradado -->
+        <div class="bg-section hidden" id="bg-gradient">
+          <label class="field-label">Color inicio</label>
+          <div class="color-row">
+            <input type="color" id="grad-color1" value="#ffecd2" class="color-pick" />
+            <input type="text" id="grad-hex1" value="#ffecd2" class="hex-input" maxlength="7" />
+          </div>
+          <label class="field-label">Color fin</label>
+          <div class="color-row">
+            <input type="color" id="grad-color2" value="#fcb69f" class="color-pick" />
+            <input type="text" id="grad-hex2" value="#fcb69f" class="hex-input" maxlength="7" />
+          </div>
+          <label class="field-label">Dirección</label>
+          <div class="direction-grid">
+            <button class="dir-btn active" data-dir="horizontal"><i class="fa-solid fa-arrows-left-right"></i></button>
+            <button class="dir-btn" data-dir="vertical"><i class="fa-solid fa-arrows-up-down"></i></button>
+            <button class="dir-btn" data-dir="diagonal"><i class="fa-solid fa-arrow-down-right"></i></button>
+            <button class="dir-btn" data-dir="radial"><i class="fa-solid fa-circle-dot"></i></button>
+          </div>
+          <button class="btn btn-secondary btn-full" id="apply-gradient">
+            <i class="fa-solid fa-check"></i> Aplicar degradado
+          </button>
+        </div>
+
+        <!-- Fondo: Imagen -->
+        <div class="bg-section hidden" id="bg-image">
+          <label class="upload-area" id="bg-upload-area">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Arrastra o haz clic para subir</span>
+            <input type="file" id="bg-image-input" accept="image/*" hidden />
+          </label>
+          <label class="field-label">Ajuste</label>
+          <select id="bg-fit">
+            <option value="cover">Llenar (cover)</option>
+            <option value="contain">Contener (contain)</option>
+            <option value="stretch">Estirar</option>
+          </select>
+          <label class="field-label">Opacidad del fondo <span id="bg-opacity-val">100%</span></label>
+          <input type="range" id="bg-opacity" min="0" max="100" value="100" class="slider" />
+        </div>
+
+        <!-- Fondo: Patrón -->
+        <div class="bg-section hidden" id="bg-pattern">
+          <label class="field-label">Patrones prediseñados</label>
+          <div class="pattern-grid" id="pattern-grid">
+            <!-- generados por JS -->
+          </div>
+          <label class="field-label">Color del patrón</label>
+          <input type="color" id="pattern-color" value="#d4a96a" class="color-pick" />
+          <label class="field-label">Color de fondo del patrón</label>
+          <input type="color" id="pattern-bg-color" value="#fdf3e3" class="color-pick" />
+          <label class="field-label">Escala <span id="pattern-scale-val">1×</span></label>
+          <input type="range" id="pattern-scale" min="1" max="5" value="1" step="0.5" class="slider" />
+        </div>
+      </div>
+
+      <!-- TAB: TEXTO -->
+      <div class="tab-content hidden" id="tab-text">
+        <h3 class="section-title">Agregar Texto</h3>
+        <textarea id="text-input" class="text-area-input" placeholder="Escribe tu texto aquí...
+Ej: Vela de Lavanda
+Aromaterapia · Relajación"></textarea>
+        <div class="field-group">
+          <label class="field-label">Fuente</label>
+          <select id="font-family">
+            <option value="Arial">Arial</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Trebuchet MS">Trebuchet MS</option>
+            <option value="Impact">Impact</option>
+            <option value="Comic Sans MS">Comic Sans MS</option>
+            <option value="Palatino Linotype">Palatino</option>
+            <option value="Book Antiqua">Book Antiqua</option>
+          </select>
+        </div>
+        <div class="two-col">
+          <div class="field-group">
+            <label class="field-label">Tamaño</label>
+            <input type="number" id="font-size" value="28" min="8" max="200" class="number-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Color</label>
+            <input type="color" id="text-color" value="#3d2b1f" class="color-pick full-width" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Estilo</label>
+          <div class="style-btns">
+            <button class="style-btn" id="text-bold" title="Negrita"><i class="fa-solid fa-bold"></i></button>
+            <button class="style-btn" id="text-italic" title="Cursiva"><i class="fa-solid fa-italic"></i></button>
+            <button class="style-btn" id="text-underline" title="Subrayado"><i class="fa-solid fa-underline"></i></button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Alineación</label>
+          <div class="style-btns">
+            <button class="style-btn" id="align-left" title="Izquierda"><i class="fa-solid fa-align-left"></i></button>
+            <button class="style-btn active" id="align-center" title="Centro"><i class="fa-solid fa-align-center"></i></button>
+            <button class="style-btn" id="align-right" title="Derecha"><i class="fa-solid fa-align-right"></i></button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Espaciado entre letras <span id="letter-spacing-val">0</span></label>
+          <input type="range" id="letter-spacing" min="-5" max="30" value="0" class="slider" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Interlineado <span id="line-height-val">1.2</span></label>
+          <input type="range" id="line-height" min="0.8" max="3" value="1.2" step="0.1" class="slider" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Sombra</label>
+          <div class="toggle-row">
+            <label class="toggle"><input type="checkbox" id="text-shadow" /><span class="toggle-slider"></span></label>
+            <span>Activar sombra</span>
+          </div>
+          <div id="shadow-opts" class="hidden">
+            <div class="color-row">
+              <input type="color" id="shadow-color" value="#000000" class="color-pick" />
+              <input type="text" value="Blur: 4px" class="hex-input" id="shadow-blur-label" readonly />
+            </div>
+            <input type="range" id="shadow-blur" min="0" max="20" value="4" class="slider" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Contorno</label>
+          <div class="toggle-row">
+            <label class="toggle"><input type="checkbox" id="text-stroke" /><span class="toggle-slider"></span></label>
+            <span>Activar contorno</span>
+          </div>
+          <div id="stroke-opts" class="hidden">
+            <div class="color-row">
+              <input type="color" id="stroke-color" value="#ffffff" class="color-pick" />
+              <input type="number" id="stroke-width" value="1" min="1" max="10" class="number-input" />
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-add-text">
+          <i class="fa-solid fa-plus"></i> Agregar texto al canvas
+        </button>
+
+        <h3 class="section-title" style="margin-top:16px">Textos prediseñados</h3>
+        <div class="preset-texts" id="preset-texts">
+          <!-- generados por JS -->
+        </div>
+      </div>
+
+      <!-- TAB: IMAGEN -->
+      <div class="tab-content hidden" id="tab-image">
+        <h3 class="section-title">Agregar Imagen</h3>
+        <label class="upload-area" id="img-upload-area">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Arrastra o haz clic para subir imagen</span>
+          <input type="file" id="img-input" accept="image/*" hidden />
+        </label>
+        <h3 class="section-title" style="margin-top:16px">Imágenes de Velas</h3>
+        <div class="candle-images-grid" id="candle-images-grid">
+          <!-- SVG velas generados por JS -->
+        </div>
+        <div id="selected-obj-panel" class="hidden">
+          <h3 class="section-title" style="margin-top:16px">Objeto seleccionado</h3>
+          <label class="field-label">Opacidad <span id="obj-opacity-val">100%</span></label>
+          <input type="range" id="obj-opacity" min="0" max="100" value="100" class="slider" />
+          <label class="field-label">Rotación <span id="obj-rotation-val">0°</span></label>
+          <input type="range" id="obj-rotation" min="-180" max="180" value="0" class="slider" />
+        </div>
+      </div>
+
+      <!-- TAB: ELEMENTOS DE VELA -->
+      <div class="tab-content hidden" id="tab-elements">
+        <h3 class="section-title">Elementos Decorativos</h3>
+        <div class="elements-grid" id="elements-grid">
+          <!-- generados por elements.js -->
+        </div>
+        <h3 class="section-title" style="margin-top:16px">Bordes</h3>
+        <div class="borders-grid" id="borders-grid">
+          <!-- generados por elements.js -->
+        </div>
+        <h3 class="section-title" style="margin-top:16px">Íconos de Aromas</h3>
+        <div class="scents-grid" id="scents-grid">
+          <!-- generados por elements.js -->
+        </div>
+      </div>
+
+      <!-- TAB: FORMAS -->
+      <div class="tab-content hidden" id="tab-shapes">
+        <h3 class="section-title">Formas Básicas</h3>
+        <div class="shapes-grid" id="shapes-grid">
+          <button class="shape-btn" data-shape="rect" title="Rectángulo"><i class="fa-regular fa-square"></i></button>
+          <button class="shape-btn" data-shape="circle" title="Círculo"><i class="fa-regular fa-circle"></i></button>
+          <button class="shape-btn" data-shape="triangle" title="Triángulo"><i class="fa-solid fa-play" style="transform:rotate(-90deg)"></i></button>
+          <button class="shape-btn" data-shape="star" title="Estrella"><i class="fa-regular fa-star"></i></button>
+          <button class="shape-btn" data-shape="line" title="Línea"><i class="fa-solid fa-minus"></i></button>
+          <button class="shape-btn" data-shape="heart" title="Corazón"><i class="fa-regular fa-heart"></i></button>
+        </div>
+        <div class="field-group" style="margin-top:12px">
+          <label class="field-label">Color de relleno</label>
+          <input type="color" id="shape-fill" value="#d4a96a" class="color-pick" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Color de borde</label>
+          <input type="color" id="shape-stroke" value="#3d2b1f" class="color-pick" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Grosor borde</label>
+          <input type="number" id="shape-stroke-width" value="2" min="0" max="20" class="number-input" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Opacidad <span id="shape-opacity-val">100%</span></label>
+          <input type="range" id="shape-opacity" min="0" max="100" value="100" class="slider" />
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ CENTRO: CANVAS ═══ -->
+    <main class="canvas-area">
+      <div class="canvas-toolbar">
+        <div class="canvas-tools-left">
+          <button class="tool-icon-btn" id="btn-undo" title="Deshacer (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+          <button class="tool-icon-btn" id="btn-redo" title="Rehacer (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+          <div class="separator"></div>
+          <button class="tool-icon-btn" id="btn-delete" title="Eliminar selección (Del)"><i class="fa-solid fa-trash"></i></button>
+          <button class="tool-icon-btn" id="btn-duplicate" title="Duplicar selección"><i class="fa-regular fa-copy"></i></button>
+          <div class="separator"></div>
+          <button class="tool-icon-btn" id="btn-bring-front" title="Traer al frente"><i class="fa-solid fa-angles-up"></i></button>
+          <button class="tool-icon-btn" id="btn-send-back" title="Enviar atrás"><i class="fa-solid fa-angles-down"></i></button>
+          <div class="separator"></div>
+          <button class="tool-icon-btn" id="btn-center-h" title="Centrar horizontal"><i class="fa-solid fa-align-center"></i></button>
+          <button class="tool-icon-btn" id="btn-center-v" title="Centrar vertical"><i class="fa-solid fa-arrows-up-down"></i></button>
+        </div>
+        <div class="canvas-tools-right">
+          <label class="field-label" style="margin:0">Zoom:</label>
+          <button class="tool-icon-btn" id="btn-zoom-out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <span id="zoom-label">100%</span>
+          <button class="tool-icon-btn" id="btn-zoom-in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tool-icon-btn" id="btn-zoom-fit" title="Ajustar a pantalla"><i class="fa-solid fa-maximize"></i></button>
+        </div>
+      </div>
+      <div class="canvas-wrapper" id="canvas-wrapper">
+        <div class="canvas-frame" id="canvas-frame">
+          <canvas id="main-canvas"></canvas>
+        </div>
+      </div>
+      <div class="canvas-statusbar">
+        <span id="canvas-size-label">3×3 pulg · 300 DPI · 900×900 px</span>
+        <span id="selection-info"></span>
+      </div>
+    </main>
+
+    <!-- ═══ PANEL DERECHO: CAPAS ═══ -->
+    <aside class="panel-right">
+      <h3 class="section-title">Capas</h3>
+      <div class="layers-toolbar">
+        <button class="tool-icon-btn sm" id="btn-layer-up" title="Subir capa"><i class="fa-solid fa-angle-up"></i></button>
+        <button class="tool-icon-btn sm" id="btn-layer-down" title="Bajar capa"><i class="fa-solid fa-angle-down"></i></button>
+        <button class="tool-icon-btn sm" id="btn-layer-delete" title="Eliminar capa"><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <div class="layers-list" id="layers-list">
+        <div class="layer-empty">Sin capas todavía</div>
+      </div>
+
+      <h3 class="section-title" style="margin-top:16px">Propiedades del Canvas</h3>
+      <div class="field-group">
+        <label class="field-label">Ancho (px)</label>
+        <input type="number" id="canvas-w" value="900" min="100" max="3000" class="number-input" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Alto (px)</label>
+        <input type="number" id="canvas-h" value="900" min="100" max="3000" class="number-input" />
+      </div>
+      <button class="btn btn-secondary btn-full" id="btn-apply-size">
+        <i class="fa-solid fa-check"></i> Aplicar tamaño
+      </button>
+
+      <h3 class="section-title" style="margin-top:16px">Guías</h3>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="show-grid" /><span class="toggle-slider"></span></label>
+        <span>Mostrar cuadrícula</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="snap-grid" /><span class="toggle-slider"></span></label>
+        <span>Ajustar a cuadrícula</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="show-bleed" /><span class="toggle-slider"></span></label>
+        <span>Mostrar área de sangrado</span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ MODAL: PLANTILLAS ═══ -->
+  <div class="modal-overlay hidden" id="modal-templates">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-table-cells-large"></i> Plantillas de Velas</h2>
+        <button class="modal-close" id="close-templates"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="template-categories">
+          <button class="cat-btn active" data-cat="all">Todas</button>
+          <button class="cat-btn" data-cat="classic">Clásicas</button>
+          <button class="cat-btn" data-cat="modern">Modernas</button>
+          <button class="cat-btn" data-cat="nature">Naturaleza</button>
+          <button class="cat-btn" data-cat="luxury">Lujo</button>
+        </div>
+        <div class="templates-grid" id="templates-grid">
+          <!-- generados por JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: EXPORTAR ═══ -->
+  <div class="modal-overlay hidden" id="modal-export">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-download"></i> Exportar Sticker</h2>
+        <button class="modal-close" id="close-export"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="field-group">
+          <label class="field-label">Formato</label>
+          <div class="format-btns">
+            <button class="format-btn active" data-fmt="png">PNG</button>
+            <button class="format-btn" data-fmt="jpg">JPG</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Calidad / Resolución</label>
+          <select id="export-dpi">
+            <option value="1">Pantalla (72 DPI)</option>
+            <option value="2" selected>Impresión media (150 DPI ×2)</option>
+            <option value="3">Impresión alta (300 DPI ×3)</option>
+            <option value="4">Impresión premium (600 DPI ×4)</option>
+          </select>
+        </div>
+        <div id="export-jpg-opts" class="field-group hidden">
+          <label class="field-label">Calidad JPG <span id="jpg-quality-val">90%</span></label>
+          <input type="range" id="jpg-quality" min="50" max="100" value="90" class="slider" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Nombre del archivo</label>
+          <input type="text" id="export-filename" value="sticker-vela" class="text-input-field" />
+        </div>
+        <div class="export-preview-info" id="export-size-info">
+          Tamaño estimado: calculando...
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-do-export">
+          <i class="fa-solid fa-download"></i> Descargar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: PERSONALIZADO ═══ -->
+  <div class="modal-overlay hidden" id="modal-custom-size">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Tamaño Personalizado</h2>
+        <button class="modal-close" id="close-custom-size"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="two-col">
+          <div class="field-group">
+            <label class="field-label">Ancho (pulg)</label>
+            <input type="number" id="custom-w" value="3" min="1" max="20" step="0.25" class="number-input" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Alto (pulg)</label>
+            <input type="number" id="custom-h" value="3" min="1" max="20" step="0.25" class="number-input" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">DPI</label>
+          <select id="custom-dpi">
+            <option value="72">72 DPI (pantalla)</option>
+            <option value="150">150 DPI (media)</option>
+            <option value="300" selected>300 DPI (impresión)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-apply-custom-size">
+          <i class="fa-solid fa-check"></i> Aplicar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="elements.js"></script>
+  <script src="templates.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
