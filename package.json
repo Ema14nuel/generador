@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "@fontsource/caveat": "^5.2.8",
+    "@fontsource/dancing-script": "^5.2.8",
+    "@fontsource/pacifico": "^5.2.7",
+    "@fontsource/satisfy": "^5.2.7",
     "@fortawesome/fontawesome-free": "^7.3.0",
     "fabric": "^5.5.2"
   }
