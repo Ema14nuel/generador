@@ -11,26 +11,36 @@ const BRUSH_STYLES = {
   classic: {
     name: 'Clásico',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M10,50 C20,15 100,5 200,7 C300,5 380,15 390,50 C380,85 300,95 200,93 C100,95 20,85 10,50Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op) => `
+      <path d="M12,52 C18,16 96,4 200,6 C304,4 382,16 388,52 C382,86 304,96 200,94 C96,96 18,86 12,52Z" fill="${c}" opacity="${op}"/>
+      <path d="M30,42 C60,26 130,20 200,22 C270,20 340,26 368,42" stroke="#fff" stroke-width="7" fill="none" opacity="${parseFloat(op)*0.18}" stroke-linecap="round"/>`
   },
   wavy: {
     name: 'Ondulado',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M8,48 C30,20 70,30 110,25 C150,20 180,38 220,33 C260,28 295,15 335,22 C362,27 388,38 392,50 C388,65 362,76 335,72 C295,80 260,88 220,82 C180,76 150,88 110,84 C70,80 30,82 8,65Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op) => `
+      <path d="M8,50 C28,22 68,30 108,24 C148,18 178,38 218,32 C258,26 294,14 334,22 C362,28 390,40 392,52 C388,66 360,76 334,72 C294,80 258,90 218,84 C178,78 148,90 108,86 C68,82 28,80 8,66Z" fill="${c}" opacity="${op}"/>
+      <path d="M20,40 C50,24 90,32 128,26 C168,20 195,36 230,30 C265,24 298,14 332,20" stroke="#fff" stroke-width="5" fill="none" opacity="${parseFloat(op)*0.16}" stroke-linecap="round"/>`
   },
   ribbon: {
     name: 'Cinta',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M5,22 C60,12 160,8 200,10 C240,8 340,12 395,22 L395,78 C340,88 240,92 200,90 C160,92 60,88 5,78Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op) => `
+      <path d="M4,20 C60,10 160,6 200,8 C240,6 340,10 396,20 L396,80 C340,90 240,94 200,92 C160,94 60,90 4,80Z" fill="${c}" opacity="${op}"/>
+      <path d="M4,20 C60,10 160,6 200,8 C240,6 340,10 396,20 L396,34 C340,28 240,24 200,26 C160,24 60,28 4,34Z" fill="#fff" opacity="${parseFloat(op)*0.16}"/>`
   },
   rounded: {
     name: 'Píldora',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M50,8 L350,8 Q395,8 395,50 Q395,92 350,92 L50,92 Q5,92 5,50 Q5,8 50,8Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op, uid = 'rnd') => {
+      const id = `rg${uid}`;
+      return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fff" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0.10"/>
+      </linearGradient></defs>
+      <path d="M50,8 L350,8 Q395,8 395,50 Q395,92 350,92 L50,92 Q5,92 5,50 Q5,8 50,8Z" fill="${c}" opacity="${op}"/>
+      <path d="M50,8 L350,8 Q395,8 395,50 Q395,92 350,92 L50,92 Q5,92 5,50 Q5,8 50,8Z" fill="url(#${id})"/>`;
+    }
   },
   burst: {
     name: 'Explosión',
@@ -39,17 +49,26 @@ const BRUSH_STYLES = {
       `<path d="M200,5 L222,38 L270,18 L248,52 L390,45 L358,58 L388,74 L326,70 L308,92 L248,68 L200,95 L152,68 L92,92 L74,70 L12,74 L42,58 L10,45 L152,52 L130,18 L178,38Z" fill="${c}" opacity="${op}"/>`
   },
   paintbrush: {
-    name: 'Pincel',
+    name: 'Pincel orgánico',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M12,42 C50,8 130,3 200,6 C270,3 350,8 388,38 C396,52 390,72 378,80 C348,95 268,98 200,96 C132,98 52,95 22,80 C8,70 3,55 12,42Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op) => `
+      <path d="M6,44 C14,8 80,2 160,4 C200,4 240,4 280,6 C330,8 388,20 394,44 C398,58 392,76 376,84 C348,96 268,99 200,97 C130,99 50,96 22,82 C6,72 2,58 6,44Z" fill="${c}" opacity="${op}"/>
+      <path d="M16,36 C36,16 100,10 180,10 C230,10 300,12 360,28" stroke="#fff" stroke-width="8" fill="none" opacity="${parseFloat(op)*0.2}" stroke-linecap="round"/>
+      <path d="M376,66 C360,80 310,88 240,90 C180,92 100,90 40,80" stroke="#000" stroke-width="4" fill="none" opacity="${parseFloat(op)*0.08}" stroke-linecap="round"/>`
   },
-  /* ── NUEVOS ESTILOS ─────────────────────────────────────────── */
   bar: {
     name: 'Barra plana',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<rect x="2" y="16" width="396" height="68" rx="4" fill="${c}" opacity="${op}"/>`
+    render: (c, op, uid = 'bar') => {
+      const id = `bg${uid}`;
+      return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fff" stop-opacity="0.20"/>
+        <stop offset="50%" stop-color="${c}" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0.10"/>
+      </linearGradient></defs>
+      <rect x="2" y="14" width="396" height="72" rx="5" fill="${c}" opacity="${op}"/>
+      <rect x="2" y="14" width="396" height="72" rx="5" fill="url(#${id})"/>`;
+    }
   },
   tube: {
     name: 'Tubo 3D',
@@ -60,22 +79,24 @@ const BRUSH_STYLES = {
         <linearGradient id="${id1}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stop-color="#fff" stop-opacity="0.58"/>
           <stop offset="42%"  stop-color="${c}"  stop-opacity="${op}"/>
-          <stop offset="100%" stop-color="#000" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0.22"/>
         </linearGradient>
         <linearGradient id="${id2}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"  stop-color="#fff" stop-opacity="0.38"/>
-          <stop offset="28%" stop-color="#fff" stop-opacity="0"/>
+          <stop offset="0%"  stop-color="#fff" stop-opacity="0.42"/>
+          <stop offset="32%" stop-color="#fff" stop-opacity="0"/>
         </linearGradient>
       </defs>
       <path d="M50,8 L350,8 Q396,8 396,50 Q396,92 350,92 L50,92 Q4,92 4,50 Q4,8 50,8Z" fill="url(#${id1})"/>
-      <path d="M50,8 L350,8 Q396,8 396,50 Q396,92 350,92 L50,92 Q4,92 4,50 Q4,8 50,8Z" fill="url(#${id2})"/>`;
+      <path d="M50,8 L350,8 Q396,8 396,50 Q396,92 350,92 L50,92 Q4,92 4,50 Q4,8 50,8Z" fill="url(#${id2})"/>
+      <ellipse cx="200" cy="18" rx="140" ry="5" fill="#fff" opacity="${parseFloat(op)*0.12}"/>`;
     }
   },
   bandera: {
     name: 'Bandera',
     viewBox: '0 0 400 100',
-    render: (c, op) =>
-      `<path d="M5,10 L362,10 L396,50 L362,90 L5,90 Z" fill="${c}" opacity="${op}"/>`
+    render: (c, op) => `
+      <path d="M5,10 L360,10 L396,50 L360,90 L5,90 Z" fill="${c}" opacity="${op}"/>
+      <path d="M5,10 L360,10 L396,50 L360,38 L90,34 Z" fill="#fff" opacity="${parseFloat(op)*0.15}"/>`
   },
 };
 
@@ -129,6 +150,26 @@ const FONTS = [
   { id: 'Caveat',         label: 'Caveat',         sample: 'Amor' },
   { id: 'Pacifico',       label: 'Pacifico',       sample: 'Amor' },
   { id: 'Satisfy',        label: 'Satisfy',        sample: 'Amor' },
+];
+
+/* ── ÍCONOS DECORATIVOS PARA EL TRAZO ─────────────────────────── */
+const DECO_ICONS = [
+  { id: 'none',   symbol: '',   label: 'Ninguno' },
+  { id: 'star4',  symbol: '✦',  label: 'Estrella' },
+  { id: 'flower', symbol: '✿',  label: 'Flor' },
+  { id: 'heart',  symbol: '♡',  label: 'Corazón' },
+  { id: 'rose',   symbol: '❀',  label: 'Rosa' },
+  { id: 'cross',  symbol: '✝',  label: 'Cruz' },
+  { id: 'spark4', symbol: '❊',  label: 'Sol' },
+  { id: 'spark',  symbol: '✨', label: 'Destellos' },
+  { id: 'star',   symbol: '⭐', label: 'Estrella' },
+  { id: 'fire',   symbol: '🔥', label: 'Fuego' },
+  { id: 'cherry', symbol: '🌸', label: 'Flor' },
+  { id: 'gem',    symbol: '💎', label: 'Gema' },
+  { id: 'bow',    symbol: '🎀', label: 'Moño' },
+  { id: 'dove',   symbol: '🕊', label: 'Paloma' },
+  { id: 'leaf',   symbol: '🍀', label: 'Trébol' },
+  { id: 'moon',   symbol: '🌙', label: 'Luna' },
 ];
 
 /* ── HELPERS ───────────────────────────────────────────────────── */

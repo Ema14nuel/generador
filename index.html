@@ -85,6 +85,9 @@
         <label class="field-label" style="margin-top:12px">Tamaño del personaje <span id="char-size-val">120%</span></label>
         <input type="range" id="char-size" min="60" max="200" value="120" class="slider" />
 
+        <label class="field-label" style="margin-top:8px">Rotación del personaje <span id="char-rotation-val">0°</span></label>
+        <input type="range" id="char-rotation" min="-180" max="180" value="0" class="slider" />
+
         <label class="field-label" style="margin-top:12px">Ícono derecho (opcional)</label>
         <label class="upload-zone-sm" id="icon-upload-zone">
           <div id="icon-preview-area"><i class="fa-solid fa-star"></i><span>Ícono</span></div>
@@ -98,6 +101,25 @@
         <label class="field-label">Estilo del trazo</label>
         <div class="brush-styles-grid" id="brush-styles-grid">
           <!-- renderizado por JS -->
+        </div>
+
+        <label class="field-label" style="margin-top:10px">Imagen de trazo personalizada</label>
+        <label class="upload-zone-sm" id="brush-img-upload-zone">
+          <div id="brush-img-preview"><i class="fa-solid fa-image"></i><span>Subir imagen de trazo (PNG)</span></div>
+          <input type="file" id="brush-img-input" accept="image/*" hidden />
+        </label>
+        <button class="btn btn-ghost btn-sm" id="btn-remove-brush-img" style="display:none"><i class="fa-solid fa-trash"></i> Quitar imagen</button>
+
+        <label class="field-label" style="margin-top:10px">Íconos decorativos del trazo</label>
+        <div class="deco-slots">
+          <div class="deco-slot">
+            <span class="deco-slot-label"><i class="fa-solid fa-arrow-left"></i> Izquierda</span>
+            <div class="deco-icon-grid" id="deco-left-grid"><!-- JS --></div>
+          </div>
+          <div class="deco-slot">
+            <span class="deco-slot-label"><i class="fa-solid fa-arrow-right"></i> Derecha</span>
+            <div class="deco-icon-grid" id="deco-right-grid"><!-- JS --></div>
+          </div>
         </div>
 
         <label class="field-label" style="margin-top:12px">Color del trazo</label>
@@ -136,15 +158,13 @@
           <!-- renderizado por JS -->
         </div>
 
-        <div class="two-col" style="margin-top:10px">
-          <div>
-            <label class="field-label">Tamaño</label>
-            <input type="number" id="text-size" value="32" min="10" max="100" class="number-input" />
-          </div>
-          <div>
-            <label class="field-label">Color</label>
-            <input type="color" id="text-color-pick" value="#1a1a1a" class="color-pick" style="width:100%;height:36px" />
-          </div>
+        <label class="field-label" style="margin-top:10px">Tamaño de fuente <span id="text-size-val">32px</span></label>
+        <input type="range" id="text-size" value="32" min="10" max="100" class="slider" />
+
+        <label class="field-label" style="margin-top:8px">Color del texto</label>
+        <div class="color-custom-row">
+          <input type="color" id="text-color-pick" value="#ffffff" class="color-pick" />
+          <input type="text" id="text-color-hex" value="#ffffff" class="hex-input" maxlength="7" />
         </div>
 
         <label class="field-label" style="margin-top:10px">Decoración de texto</label>
