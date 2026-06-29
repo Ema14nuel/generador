@@ -53,6 +53,16 @@
       <!-- TAB: PERSONAJE -->
       <div class="etab-content active" id="etab-char">
         <label class="field-label">Imagen del personaje</label>
+        <!-- Biblioteca de personajes prediseñados -->
+        <div class="field-label-row">
+          <label class="field-label">Personajes prediseñados</label>
+          <button class="btn btn-ghost btn-xs" id="btn-char-lib-toggle">Mostrar</button>
+        </div>
+        <div class="char-library-grid hidden" id="char-library-grid">
+          <!-- renderizado por JS -->
+        </div>
+
+        <label class="field-label" style="margin-top:12px">O sube tu propia imagen</label>
         <label class="upload-zone" id="char-upload-zone">
           <div class="upload-zone-content" id="char-preview-area">
             <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -91,6 +101,10 @@
         </div>
 
         <label class="field-label" style="margin-top:12px">Color del trazo</label>
+        <div class="palette-toggle">
+          <button class="palette-mode-btn active" data-mode="vivid">Colores vivos</button>
+          <button class="palette-mode-btn" data-mode="pastel">Tonos pastel</button>
+        </div>
         <div class="color-swatches" id="color-swatches">
           <!-- renderizado por JS -->
         </div>
@@ -363,6 +377,7 @@
         <div class="format-btns">
           <button class="format-btn active" data-fmt="png">PNG</button>
           <button class="format-btn" data-fmt="jpg">JPG</button>
+          <button class="format-btn" data-fmt="svg">SVG vectorial</button>
         </div>
       </div>
       <div class="field-group">

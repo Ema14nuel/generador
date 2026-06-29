@@ -601,6 +601,60 @@ select:focus { outline: none; border-color: var(--accent2); }
 .toast.success { border-color: var(--accent3); color: var(--accent3); }
 .toast.error { border-color: var(--accent); color: var(--accent); }
 
+/* ════════ CHAR LIBRARY ════════ */
+.field-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.field-label-row .field-label { margin-bottom: 0; }
+
+.btn-xs {
+  padding: 2px 8px; font-size: 11px; border-radius: var(--radius-sm);
+  background: var(--bg-card); color: var(--text-secondary);
+  border: 1px solid var(--border-light); cursor: pointer; transition: var(--tr);
+}
+.btn-xs:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+.char-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+.char-card {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--bg-card);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  padding: 6px 4px;
+  cursor: pointer;
+  transition: var(--tr);
+  gap: 3px;
+}
+.char-card:hover { border-color: var(--accent2); background: var(--bg-card-hover); }
+.char-card.active { border-color: var(--accent); background: var(--bg-card-hover); }
+.char-card img { width: 46px; height: 46px; object-fit: contain; }
+.char-card-name { font-size: 10px; color: var(--text-secondary); text-align: center; }
+
+/* ════════ PALETTE TOGGLE ════════ */
+.palette-toggle {
+  display: flex; gap: 4px; margin-bottom: 8px;
+}
+.palette-mode-btn {
+  flex: 1; padding: 4px 0; font-size: 11px; font-family: inherit;
+  background: var(--bg-card); color: var(--text-secondary);
+  border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+  cursor: pointer; transition: var(--tr);
+}
+.palette-mode-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.palette-mode-btn.active { background: var(--accent2); color: #000; border-color: var(--accent2); font-weight: 600; }
+
+/* ════════ INLINE EDIT ════════ */
+.inline-edit-input {
+  font-weight: 600;
+}
+
 /* ════════ UTILS ════════ */
 .hidden { display: none !important; }
 

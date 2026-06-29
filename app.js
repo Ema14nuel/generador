@@ -15,6 +15,7 @@ class StickerApp {
     this.exportFormat = 'png';
     this.globalCharImg = null;
     this.sequenceColors = [...DEFAULT_SEQUENCE];
+    this._paletteMode = 'vivid';
     this.sheetConfig = {
       paperSize: 'letter',
       columns: 2,
@@ -33,6 +34,7 @@ class StickerApp {
     this.renderFontGrid();
     this.renderSequenceBar();
     this.renderTemplateGrid('all');
+    this.renderCharLibrary();
     this.setSheetDimensions();
     this.setZoom(this.zoom);
     this.bindUI();
@@ -215,7 +217,6 @@ class StickerApp {
     const s = this.readEditorToSticker();
     if (!s) return;
     document.getElementById('editor-title').textContent = `Editando: ${s.text}`;
-    // Update the word item color dot and text
     const item = document.querySelector(`.word-item[data-id="${s.id}"]`);
     if (item) {
       item.querySelector('.word-item-color').style.background = s.color;
@@ -228,7 +229,7 @@ class StickerApp {
 
   /* ── CHAR / ICON IMAGE PREVIEWS ───────────────────────────────── */
   updateCharPreviewInEditor(src) {
-    const area = document.getElementById('char-preview-area');
+    const area    = document.getElementById('char-preview-area');
     const actions = document.getElementById('char-actions');
     if (src) {
       area.innerHTML = `<img src="${src}" alt="Personaje" />`;
@@ -240,7 +241,7 @@ class StickerApp {
   }
 
   updateIconPreviewInEditor(src) {
-    const area = document.getElementById('icon-preview-area');
+    const area      = document.getElementById('icon-preview-area');
     const removeBtn = document.getElementById('btn-remove-icon');
     if (src) {
       area.innerHTML = `<img src="${src}" alt="Ícono" style="height:36px;object-fit:contain;" />`;
@@ -251,10 +252,115 @@ class StickerApp {
     }
   }
 
+  /* ── CHAR LIBRARY ─────────────────────────────────────────────── */
+  renderCharLibrary() {
+    const grid = document.getElementById('char-library-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    CHAR_LIBRARY.forEach(ch => {
+      const card = document.createElement('div');
+      card.className = 'char-card';
+      card.dataset.charId = ch.id;
+      card.innerHTML = `<img src="${ch.dataUrl}" alt="${ch.name}" /><span class="char-card-name">${ch.name}</span>`;
+      card.addEventListener('click', () => this.selectCharFromLibrary(ch));
+      grid.appendChild(card);
+    });
+  }
+
+  selectCharFromLibrary(ch) {
+    document.querySelectorAll('.char-card').forEach(c =>
+      c.classList.toggle('active', c.dataset.charId === ch.id));
+
+    this.globalCharImg = ch.dataUrl;
+    this.updateCharPreviewInEditor(ch.dataUrl);
+
+    if (this.selectedId) {
+      const s = this.stickers.find(s => s.id === this.selectedId);
+      if (s) {
+        s.charImg = ch.dataUrl;
+        if (s.charPosition === 'none') s.charPosition = 'left';
+        this.renderSheet();
+        this.saveToStorage();
+      }
+    }
+  }
+
+  /* ── INLINE TEXT EDITING ──────────────────────────────────────── */
+  initInlineEditing() {
+    document.querySelectorAll('.sticker-wrap').forEach(wrap => {
+      const mainText = wrap.querySelector('.sticker-main-text');
+      if (!mainText) return;
+      mainText.style.cursor = 'text';
+      mainText.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        const id = wrap.dataset.id;
+        const s  = this.stickers.find(s => s.id === id);
+        if (!s) return;
+        this.startInlineEdit(mainText, s, wrap);
+      });
+    });
+  }
+
+  startInlineEdit(textEl, s, wrap) {
+    if (document.querySelector('.inline-edit-input')) return;
+
+    const rect  = textEl.getBoundingClientRect();
+    const input = document.createElement('input');
+    input.type  = 'text';
+    input.value = s.text;
+    input.className = 'inline-edit-input';
+    input.style.cssText = `
+      position:fixed;
+      left:${rect.left - 4}px;
+      top:${rect.top - 4}px;
+      min-width:${Math.max(rect.width + 8, 80)}px;
+      height:${Math.max(rect.height + 8, 34)}px;
+      font-family:'${s.font}',cursive;
+      font-size:${s.fontSize}px;
+      color:${s.textColor};
+      background:rgba(0,0,0,0.82);
+      border:2px solid #fdcb6e;
+      border-radius:5px;
+      padding:2px 6px;
+      z-index:9999;
+      text-align:${s.align || 'center'};
+      outline:none;
+      box-shadow:0 0 0 3px rgba(253,203,110,0.25);
+    `;
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      const newText = input.value.trim() || s.text;
+      input.removeEventListener('blur', commit);
+      input.remove();
+      if (newText === s.text) return;
+      s.text = newText;
+      this.renderWordList();
+      this.renderSheet();
+      this.saveToStorage();
+      if (this.selectedId === s.id) {
+        const ti = document.getElementById('sticker-text-input');
+        if (ti) ti.value = newText;
+        document.getElementById('editor-title').textContent = `Editando: ${newText}`;
+      }
+    };
+
+    input.addEventListener('blur',    commit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { done = true; input.removeEventListener('blur', commit); input.remove(); }
+    });
+  }
+
   /* ── SHEET RENDERING ──────────────────────────────────────────── */
   setSheetDimensions() {
     const paper = PAPER_SIZES[this.sheetConfig.paperSize] || PAPER_SIZES.letter;
-    const el = document.getElementById('sheet-paper');
+    const el    = document.getElementById('sheet-paper');
     el.style.width    = paper.w + 'px';
     el.style.minHeight = paper.h + 'px';
   }
@@ -269,9 +375,7 @@ class StickerApp {
     const container = document.getElementById('sheet-columns');
     const empty     = document.getElementById('sheet-empty');
 
-    // Clear existing column wraps
     container.querySelectorAll('.sheet-col-wrap').forEach(el => el.remove());
-
     container.style.padding = this.sheetConfig.margin + 'px';
 
     if (this.stickers.length === 0) {
@@ -281,9 +385,9 @@ class StickerApp {
     }
     empty.style.display = 'none';
 
-    const cols    = this.sheetConfig.columns;
-    const gap     = this.sheetConfig.gap;
-    const perCol  = Math.ceil(this.stickers.length / cols);
+    const cols   = this.sheetConfig.columns;
+    const gap    = this.sheetConfig.gap;
+    const perCol = Math.ceil(this.stickers.length / cols);
 
     const wrap = document.createElement('div');
     wrap.className = 'sheet-col-wrap';
@@ -304,6 +408,7 @@ class StickerApp {
     container.appendChild(wrap);
     this.highlightSelected();
     this.updateSheetInfo();
+    this.initInlineEditing();
   }
 
   updateSheetInfo() {
@@ -314,30 +419,26 @@ class StickerApp {
   }
 
   createStickerElement(s) {
-    const sH       = this.sheetConfig.stickerHeight;
-    const hasChar  = !!(s.charImg && s.charPosition !== 'none');
-    const charSide = s.charPosition || 'left';
+    const sH        = this.sheetConfig.stickerHeight;
+    const hasChar   = !!(s.charImg && s.charPosition !== 'none');
+    const charSide  = s.charPosition || 'left';
     const charScale = (s.charSize || 120) / 100;
 
-    // Character display dimensions
     const charDisplayH = Math.round(sH * 1.25 * charScale);
     const charDisplayW = Math.round(charDisplayH * 0.72);
 
-    // Brush stroke area
     const brushInset = hasChar ? Math.round(charDisplayW * 0.55) : 4;
     const brushLeft  = hasChar && charSide === 'left'  ? brushInset : 4;
     const brushRight = hasChar && charSide === 'right' ? brushInset : 4;
     const brushH     = Math.round(sH * 0.78);
 
-    // Text area (z-indexed on top of brush)
     const textLeft  = brushLeft + 10;
     const textRight = brushRight + 10;
 
-    const brushDef  = BRUSH_STYLES[s.brushStyle] || BRUSH_STYLES.classic;
-    const opacity   = ((s.brushOpacity !== undefined ? s.brushOpacity : 100) / 100).toFixed(2);
-    const decoText  = this.applyDeco(s.deco, this.esc(s.text));
+    const brushDef = BRUSH_STYLES[s.brushStyle] || BRUSH_STYLES.classic;
+    const opacity  = ((s.brushOpacity !== undefined ? s.brushOpacity : 100) / 100).toFixed(2);
+    const decoText = this.applyDeco(s.deco, this.esc(s.text));
 
-    // Build char zone
     let charHTML = '';
     if (hasChar) {
       const cStyle = charSide === 'right'
@@ -348,7 +449,6 @@ class StickerApp {
       </div>`;
     }
 
-    // Build icon zone
     let iconHTML = '';
     if (s.iconImg) {
       const iconSz = Math.round(sH * 0.38);
@@ -373,11 +473,11 @@ class StickerApp {
         <div class="sticker-body">
           <div class="sticker-brush-wrap" style="left:${brushLeft}px;right:${brushRight}px;height:${brushH}px;z-index:1;">
             <svg viewBox="${brushDef.viewBox}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;">
-              <path d="${brushDef.path}" fill="${s.color}" opacity="${opacity}"/>
+              ${brushDef.render(s.color, opacity, s.id)}
             </svg>
           </div>
           <div class="sticker-text-wrap" style="left:${textLeft}px;right:${textRight}px;top:0;bottom:0;text-align:${s.align||'center'};z-index:2;">
-            <span class="sticker-main-text" style="font-family:${fontDecl};font-size:${s.fontSize}px;color:${s.textColor};">${decoText}</span>
+            <span class="sticker-main-text" style="font-family:${fontDecl};font-size:${s.fontSize}px;color:${s.textColor};" title="Doble clic para editar">${decoText}</span>
             ${subtextHTML}
           </div>
         </div>
@@ -390,6 +490,12 @@ class StickerApp {
 
   esc(str) {
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  escSVG(str) {
+    return String(str || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
   }
 
   applyDeco(deco, text) {
@@ -491,7 +597,7 @@ class StickerApp {
       btn.dataset.style = key;
       btn.title = style.name;
       btn.innerHTML = `<svg viewBox="${style.viewBox}" preserveAspectRatio="none" style="width:100%;height:100%;">
-        <path d="${style.path}" fill="#ff9f43"/>
+        ${style.render('#ff9f43', 1, 'prev_' + key)}
       </svg>`;
       btn.addEventListener('click', () => {
         document.querySelectorAll('.brush-style-btn').forEach(b => b.classList.remove('active'));
@@ -500,7 +606,6 @@ class StickerApp {
       });
       grid.appendChild(btn);
     });
-    // Set first as active
     const first = grid.querySelector('.brush-style-btn');
     if (first) first.classList.add('active');
   }
@@ -509,15 +614,14 @@ class StickerApp {
     const s = this.stickers.find(s => s.id === this.selectedId);
     if (!s) return;
     s.brushStyle = style;
-    // Update just the brush SVG in the sheet
     const wrap = document.querySelector(`.sticker-wrap[data-id="${s.id}"]`);
     if (wrap) {
       const brushDef = BRUSH_STYLES[style] || BRUSH_STYLES.classic;
       const svg = wrap.querySelector('.sticker-brush-wrap svg');
       if (svg) {
         svg.setAttribute('viewBox', brushDef.viewBox);
-        const path = svg.querySelector('path');
-        if (path) path.setAttribute('d', brushDef.path);
+        const opacity = ((s.brushOpacity !== undefined ? s.brushOpacity : 100) / 100).toFixed(2);
+        svg.innerHTML = brushDef.render(s.color, opacity, s.id);
       }
     }
   }
@@ -526,7 +630,8 @@ class StickerApp {
     const swatches = document.getElementById('color-swatches');
     if (!swatches) return;
     swatches.innerHTML = '';
-    COLOR_PRESETS.forEach(c => {
+    const palette = this._paletteMode === 'pastel' ? PASTEL_COLORS : COLOR_PRESETS;
+    palette.forEach(c => {
       const sp = document.createElement('span');
       sp.className = 'swatch';
       sp.dataset.color = c.value;
@@ -559,7 +664,6 @@ class StickerApp {
       });
       grid.appendChild(btn);
     });
-    // Set first active
     const first = grid.querySelector('.font-btn');
     if (first) first.classList.add('active');
   }
@@ -575,13 +679,10 @@ class StickerApp {
       sp.title = c;
       sp.dataset.idx = i;
       sp.addEventListener('click', () => {
-        // Allow picking a new color for this position
         const pick = document.createElement('input');
         pick.type = 'color';
         pick.value = c;
-        pick.style.position = 'fixed';
-        pick.style.opacity = '0';
-        pick.style.pointerEvents = 'none';
+        pick.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
         document.body.appendChild(pick);
         pick.click();
         pick.addEventListener('input', () => {
@@ -599,15 +700,13 @@ class StickerApp {
     const grid = document.getElementById('tpl-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    const all = getAllTemplates();
+    const all      = getAllTemplates();
     const filtered = cat === 'all' ? all : all.filter(t => t.category === cat);
 
     filtered.forEach(tpl => {
       const card = document.createElement('div');
       card.className = 'tpl-card';
-      const isUser = !BUILTIN_TEMPLATES.find(b => b.id === tpl.id);
 
-      // Build mini preview of stickers
       const previewStickers = tpl.stickers.slice(0, 3).map(st =>
         `<div class="tpl-sticker-preview" style="background:${st.color};font-family:'${tpl.font||'Dancing Script'}',cursive;">${this.esc(st.text)}</div>`
       ).join('');
@@ -630,11 +729,11 @@ class StickerApp {
 
   loadTemplate(tpl) {
     this.stickers = tpl.stickers.map(st => this.createSticker(st.text, {
-      subtext:   st.subtext   || '',
-      color:     st.color     || '#ff9f43',
+      subtext:    st.subtext   || '',
+      color:      st.color     || '#ff9f43',
       brushStyle: tpl.brushStyle || 'classic',
-      font:      tpl.font     || 'Dancing Script',
-      textColor: '#ffffff',
+      font:       tpl.font     || 'Dancing Script',
+      textColor:  '#ffffff',
     }));
     this.selectedId = null;
     this.closeEditor();
@@ -648,9 +747,7 @@ class StickerApp {
   /* ── SEQUENCE AUTO-COLOR ──────────────────────────────────────── */
   applyColorSequence() {
     const seq = this.sequenceColors;
-    this.stickers.forEach((s, i) => {
-      s.color = seq[i % seq.length];
-    });
+    this.stickers.forEach((s, i) => { s.color = seq[i % seq.length]; });
     this.renderWordList();
     this.renderSheet();
     this.saveToStorage();
@@ -659,11 +756,11 @@ class StickerApp {
 
   applyCharToAll() {
     if (!this.globalCharImg) {
-      this.showToast('Primero selecciona y aplica un personaje en algún sticker', 'error');
+      this.showToast('Primero selecciona un personaje de la biblioteca o sube uno', 'error');
       return;
     }
     this.stickers.forEach(s => {
-      s.charImg = this.globalCharImg;
+      s.charImg      = this.globalCharImg;
       s.charPosition = 'left';
     });
     this.renderSheet();
@@ -679,10 +776,14 @@ class StickerApp {
     this.showToast(`Fuente "${font}" aplicada a todos`, 'success');
   }
 
-  /* ── EXPORT ───────────────────────────────────────────────────── */
+  /* ── EXPORT PNG/JPG ───────────────────────────────────────────── */
   updateExportInfo() {
     const info = document.getElementById('export-info');
     if (!info) return;
+    if (this.exportFormat === 'svg') {
+      info.textContent = `SVG vectorial · editable en Illustrator / Inkscape · ${this.stickers.length} stickers`;
+      return;
+    }
     const paper = PAPER_SIZES[this.sheetConfig.paperSize] || PAPER_SIZES.letter;
     const dpi   = this.sheetConfig.exportDpi;
     const W     = paper.w * dpi;
@@ -695,8 +796,8 @@ class StickerApp {
     const fmt   = this.exportFormat;
     const dpi   = this.sheetConfig.exportDpi;
     const paper = PAPER_SIZES[this.sheetConfig.paperSize] || PAPER_SIZES.letter;
-    const W     = paper.w  * dpi;
-    const H     = paper.h  * dpi;
+    const W     = paper.w * dpi;
+    const H     = paper.h * dpi;
 
     const canvas = document.createElement('canvas');
     canvas.width  = W;
@@ -721,8 +822,8 @@ class StickerApp {
       const start = c * perCol;
       const end   = Math.min(start + perCol, this.stickers.length);
       for (let i = start; i < end; i++) {
-        const s    = this.stickers[i];
-        const sY   = margin + (i - start) * (sH + gap);
+        const s  = this.stickers[i];
+        const sY = margin + (i - start) * (sH + gap);
         await this.drawStickerToCanvas(ctx, s, colX, sY, colW, sH, dpi);
       }
     }
@@ -737,12 +838,11 @@ class StickerApp {
   }
 
   async drawStickerToCanvas(ctx, s, x, y, w, h, scale) {
-    // Background
     ctx.fillStyle = s.bgColor || '#ffffff';
     ctx.fillRect(x, y, w, h);
 
-    const hasChar  = !!(s.charImg && s.charPosition !== 'none');
-    const charSide = s.charPosition || 'left';
+    const hasChar   = !!(s.charImg && s.charPosition !== 'none');
+    const charSide  = s.charPosition || 'left';
     const charScale = (s.charSize || 120) / 100;
     const charH_disp = Math.round(h * 1.25 * charScale);
     const charW_disp = Math.round(charH_disp * 0.72);
@@ -755,27 +855,24 @@ class StickerApp {
     const bY = y + (h - bH) / 2;
     const bW = w - brushLeft - brushRight;
 
-    // Brush stroke
     const brushDef = BRUSH_STYLES[s.brushStyle] || BRUSH_STYLES.classic;
     const opacity  = (s.brushOpacity !== undefined ? s.brushOpacity : 100) / 100;
     const svgStr   = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${brushDef.viewBox}" preserveAspectRatio="none">
-      <path d="${brushDef.path}" fill="${s.color}" opacity="${opacity}"/>
+      ${brushDef.render(s.color, opacity.toFixed(2), s.id + '_exp')}
     </svg>`;
     await this.drawSVGToCanvas(ctx, svgStr, bX, bY, bW, bH);
 
-    // Character image
     if (hasChar && s.charImg) {
       const cX = charSide === 'right' ? x + w - charW_disp : x;
       const cY = y + h - charH_disp;
       await this.drawImgToCanvas(ctx, s.charImg, cX, cY, charW_disp, charH_disp);
     }
 
-    // Text
-    const textLeft  = bX + 12;
-    const textW     = bW - 24;
-    const fontSz    = Math.round(s.fontSize * scale);
-    const fontDecl  = `${fontSz}px '${s.font}', cursive`;
-    const decoText  = this.applyDeco(s.deco, s.text);
+    const textLeft = bX + 12;
+    const textW    = bW - 24;
+    const fontSz   = Math.round(s.fontSize * scale);
+    const fontDecl = `${fontSz}px '${s.font}', cursive`;
+    const decoText = this.applyDeco(s.deco, s.text);
 
     ctx.save();
     ctx.font         = fontDecl;
@@ -796,7 +893,6 @@ class StickerApp {
     }
     ctx.restore();
 
-    // Icon
     if (s.iconImg) {
       const iSz = Math.round(h * 0.38);
       await this.drawImgToCanvas(ctx, s.iconImg, x + w - iSz - 6, y + (h - iSz) / 2, iSz, iSz);
@@ -808,11 +904,7 @@ class StickerApp {
       const blob = new Blob([svgStr], { type: 'image/svg+xml' });
       const url  = URL.createObjectURL(blob);
       const img  = new Image(w, h);
-      img.onload = () => {
-        ctx.drawImage(img, x, y, w, h);
-        URL.revokeObjectURL(url);
-        resolve();
-      };
+      img.onload = () => { ctx.drawImage(img, x, y, w, h); URL.revokeObjectURL(url); resolve(); };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
       img.src = url;
     });
@@ -824,9 +916,130 @@ class StickerApp {
       const img = new Image();
       img.onload  = () => { ctx.drawImage(img, x, y, w, h); resolve(); };
       img.onerror = resolve;
-      if (!img.src) img.src = src;
       img.src = src;
     });
+  }
+
+  /* ── EXPORT SVG ───────────────────────────────────────────────── */
+  async doExportSVG() {
+    const paper  = PAPER_SIZES[this.sheetConfig.paperSize] || PAPER_SIZES.letter;
+    const W      = paper.w;
+    const H      = paper.h;
+    const margin = this.sheetConfig.margin;
+    const gap    = this.sheetConfig.gap;
+    const sH     = this.sheetConfig.stickerHeight;
+    const cols   = this.sheetConfig.columns;
+    const avail  = W - margin * 2;
+    const colW   = (avail - gap * (cols - 1)) / cols;
+    const perCol = Math.ceil(this.stickers.length / cols);
+
+    const fontNames = [...new Set(this.stickers.map(s => s.font))];
+    const fontFaces = await Promise.all(fontNames.map(f => this.loadFontFace(f)));
+
+    let stickersStr = '';
+    for (let c = 0; c < cols; c++) {
+      const colX  = margin + c * (colW + gap);
+      const start = c * perCol;
+      const end   = Math.min(start + perCol, this.stickers.length);
+      for (let i = start; i < end; i++) {
+        const s  = this.stickers[i];
+        const sY = margin + (i - start) * (sH + gap);
+        stickersStr += this.buildStickerSVGStr(s, colX, sY, colW, sH);
+      }
+    }
+
+    const svgDoc = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <style>
+${fontFaces.filter(Boolean).join('\n')}
+  </style>
+  <rect width="${W}" height="${H}" fill="white"/>
+${stickersStr}
+</svg>`;
+
+    const filename = (document.getElementById('export-filename')?.value || 'hoja-velas').replace(/[^a-z0-9_\-]/gi, '_');
+    const blob = new Blob([svgDoc], { type: 'image/svg+xml' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${filename}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.showToast('SVG exportado — editable en Illustrator / Inkscape', 'success');
+  }
+
+  async loadFontFace(fontName) {
+    const map = {
+      'Dancing Script': 'dancing-script/files/dancing-script-latin-400-normal.woff2',
+      'Caveat':         'caveat/files/caveat-latin-400-normal.woff2',
+      'Pacifico':       'pacifico/files/pacifico-latin-400-normal.woff2',
+      'Satisfy':        'satisfy/files/satisfy-latin-400-normal.woff2',
+    };
+    const path = map[fontName];
+    if (!path) return '';
+    try {
+      const res = await fetch(`node_modules/@fontsource/${path}`);
+      if (!res.ok) return '';
+      const buf = await res.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      return `    @font-face { font-family: '${fontName}'; src: url('data:font/woff2;base64,${b64}') format('woff2'); font-weight: 400; font-style: normal; }`;
+    } catch(e) { return ''; }
+  }
+
+  buildStickerSVGStr(s, x, y, w, h) {
+    const hasChar   = !!(s.charImg && s.charPosition !== 'none');
+    const charSide  = s.charPosition || 'left';
+    const charScale = (s.charSize || 120) / 100;
+    const charH_d   = Math.round(h * 1.25 * charScale);
+    const charW_d   = Math.round(charH_d * 0.72);
+
+    const brushInset = hasChar ? Math.round(charW_d * 0.55) : 4;
+    const brushLeft  = hasChar && charSide === 'left'  ? brushInset : 4;
+    const brushRight = hasChar && charSide === 'right' ? brushInset : 4;
+    const bH = Math.round(h * 0.78);
+    const bX = x + brushLeft;
+    const bY = y + (h - bH) / 2;
+    const bW = w - brushLeft - brushRight;
+
+    const brushDef = BRUSH_STYLES[s.brushStyle] || BRUSH_STYLES.classic;
+    const opacity  = ((s.brushOpacity !== undefined ? s.brushOpacity : 100) / 100).toFixed(2);
+    const decoText = this.applyDeco(s.deco, s.text);
+    const escText  = this.escSVG(decoText);
+    const escSub   = this.escSVG(s.subtext || '');
+
+    const brushSvg = `  <svg x="${bX}" y="${bY}" width="${bW}" height="${bH}" viewBox="${brushDef.viewBox}" preserveAspectRatio="none">
+    ${brushDef.render(s.color, opacity, s.id + '_svg')}
+  </svg>`;
+
+    let charSvg = '';
+    if (hasChar && s.charImg) {
+      const cX = charSide === 'right' ? x + w - charW_d : x;
+      const cY = y + h - charH_d;
+      charSvg = `  <image x="${cX}" y="${cY}" width="${charW_d}" height="${charH_d}" href="${s.charImg}" preserveAspectRatio="xMidYMax meet"/>`;
+    }
+
+    const textLeft   = bX + 12;
+    const textW      = bW - 24;
+    const fontFamily = `'${s.font}', cursive`;
+    const anchor     = s.align === 'left' ? 'start' : s.align === 'right' ? 'end' : 'middle';
+    const tX = s.align === 'left'  ? textLeft :
+               s.align === 'right' ? textLeft + textW :
+               textLeft + textW / 2;
+    const tY = y + h / 2 + (s.subtext ? -(s.fontSize * 0.35) : s.fontSize * 0.35);
+
+    let textSvg = `  <text x="${tX}" y="${tY}" font-family="${fontFamily}" font-size="${s.fontSize}" fill="${s.textColor}" text-anchor="${anchor}">${escText}</text>`;
+    if (s.subtext) {
+      const subY = tY + s.fontSize * 0.65;
+      textSvg += `\n  <text x="${tX}" y="${subY}" font-family="${fontFamily}" font-size="${Math.round(s.fontSize * 0.5)}" fill="${s.textColor}" text-anchor="${anchor}">${escSub}</text>`;
+    }
+
+    return `<g>
+  <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${s.bgColor || '#ffffff'}"/>
+${brushSvg}
+${charSvg}
+${textSvg}
+</g>\n`;
   }
 
   /* ── LOCALSTORAGE ─────────────────────────────────────────────── */
@@ -838,7 +1051,7 @@ class StickerApp {
         seqColors:   this.sequenceColors,
       };
       localStorage.setItem('velasticker_state', JSON.stringify(data));
-    } catch(e) { /* quota or private mode */ }
+    } catch(e) {}
   }
 
   loadFromStorage() {
@@ -849,12 +1062,12 @@ class StickerApp {
       if (Array.isArray(data.stickers)) this.stickers = data.stickers;
       if (data.sheetConfig) Object.assign(this.sheetConfig, data.sheetConfig);
       if (Array.isArray(data.seqColors)) this.sequenceColors = data.seqColors;
-    } catch(e) { /* corrupt data */ }
+    } catch(e) {}
   }
 
   /* ── TOAST ────────────────────────────────────────────────────── */
   showToast(msg, type = '') {
-    const tc   = document.getElementById('toast-container');
+    const tc    = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast${type ? ' ' + type : ''}`;
     toast.textContent = msg;
@@ -866,7 +1079,7 @@ class StickerApp {
   bulkAdd(rawText) {
     const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) return;
-    const seq = this.sequenceColors;
+    const seq  = this.sequenceColors;
     const base = this.stickers.length;
     lines.forEach((line, i) => {
       this.stickers.push(this.createSticker(line, {
@@ -881,7 +1094,7 @@ class StickerApp {
 
   /* ── UI BINDING ───────────────────────────────────────────────── */
   bindUI() {
-    /* ─ Header buttons ─ */
+    /* ─ Header ─ */
     this.on('btn-new', 'click', () => {
       if (!confirm('¿Crear hoja nueva? Se perderán los cambios no guardados.')) return;
       this.stickers = [];
@@ -897,20 +1110,18 @@ class StickerApp {
       document.getElementById('modal-templates').classList.remove('hidden');
     });
 
-    this.on('btn-save-template', 'click', () => {
-      document.getElementById('modal-save-template').classList.remove('hidden');
-    });
+    this.on('btn-save-template', 'click', () =>
+      document.getElementById('modal-save-template').classList.remove('hidden'));
 
-    this.on('btn-sheet-settings', 'click', () => {
-      document.getElementById('modal-sheet-settings').classList.remove('hidden');
-    });
+    this.on('btn-sheet-settings', 'click', () =>
+      document.getElementById('modal-sheet-settings').classList.remove('hidden'));
 
     this.on('btn-export', 'click', () => {
       this.updateExportInfo();
       document.getElementById('modal-export').classList.remove('hidden');
     });
 
-    /* ─ Sheet add sticker buttons ─ */
+    /* ─ Add sticker ─ */
     ['btn-add-first', 'btn-add-sticker', 'btn-add-empty'].forEach(id => {
       this.on(id, 'click', () => {
         const s = this.addSticker('Nuevo');
@@ -918,7 +1129,7 @@ class StickerApp {
       });
     });
 
-    /* ─ Zoom controls ─ */
+    /* ─ Zoom ─ */
     this.on('btn-zoom-in',  'click', () => this.setZoom(this.zoom + 0.1));
     this.on('btn-zoom-out', 'click', () => this.setZoom(this.zoom - 0.1));
     this.on('btn-zoom-fit', 'click', () => this.setZoom(0.75));
@@ -934,10 +1145,9 @@ class StickerApp {
       });
     });
 
-    /* ─ Editor close ─ */
     this.on('btn-close-editor', 'click', () => { this.selectedId = null; this.closeEditor(); });
 
-    /* ─ Apply / duplicate / delete from editor ─ */
+    /* ─ Editor actions ─ */
     this.on('btn-apply-sticker',     'click', () => this.applyEditorChanges());
     this.on('btn-duplicate-sticker', 'click', () => this.selectedId && this.duplicateSticker(this.selectedId));
     this.on('btn-delete-sticker',    'click', () => this.selectedId && this.removeSticker(this.selectedId));
@@ -946,46 +1156,49 @@ class StickerApp {
     this.on('btn-apply-char-all',  'click', () => this.applyCharToAll());
     this.on('btn-apply-font-all',  'click', () => this.applyFontToAll());
     this.on('btn-color-sequence',  'click', () => {
-      const bar = document.getElementById('sequence-bar');
-      bar.classList.toggle('hidden');
+      document.getElementById('sequence-bar').classList.toggle('hidden');
     });
 
-    /* ─ Sequence bar ─ */
     this.on('btn-apply-sequence', 'click', () => this.applyColorSequence());
 
     /* ─ Brush color sync ─ */
     const bcp  = document.getElementById('brush-color-pick');
     const bhex = document.getElementById('brush-color-hex');
-    if (bcp) {
-      bcp.addEventListener('input', () => {
-        if (bhex) bhex.value = bcp.value;
-        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-      });
-    }
-    if (bhex) {
-      bhex.addEventListener('input', () => {
-        if (/^#[0-9a-fA-F]{6}$/.test(bhex.value) && bcp) bcp.value = bhex.value;
-      });
-    }
+    if (bcp)  bcp.addEventListener('input',  () => { if (bhex) bhex.value = bcp.value; document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active')); });
+    if (bhex) bhex.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(bhex.value) && bcp) bcp.value = bhex.value; });
 
-    /* ─ Sticker BG color sync ─ */
+    /* ─ BG color sync ─ */
     const sbgp = document.getElementById('sticker-bg-pick');
     const sbhex = document.getElementById('sticker-bg-hex');
-    if (sbgp) sbgp.addEventListener('input', () => { if (sbhex) sbhex.value = sbgp.value; });
-    if (sbhex) sbhex.addEventListener('input', () => {
-      if (/^#[0-9a-fA-F]{6}$/.test(sbhex.value) && sbgp) sbgp.value = sbhex.value;
-    });
+    if (sbgp)  sbgp.addEventListener('input',  () => { if (sbhex) sbhex.value = sbgp.value; });
+    if (sbhex) sbhex.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(sbhex.value) && sbgp) sbgp.value = sbhex.value; });
 
-    /* ─ Brush opacity label ─ */
+    /* ─ Sliders ─ */
     const bop = document.getElementById('brush-opacity');
     if (bop) bop.addEventListener('input', () => {
       document.getElementById('brush-opacity-val').textContent = bop.value + '%';
     });
-
-    /* ─ Char size label ─ */
     const cszEl = document.getElementById('char-size');
     if (cszEl) cszEl.addEventListener('input', () => {
       document.getElementById('char-size-val').textContent = cszEl.value + '%';
+    });
+
+    /* ─ Palette toggle ─ */
+    document.querySelectorAll('.palette-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.palette-mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this._paletteMode = btn.dataset.mode;
+        this.renderColorSwatches();
+      });
+    });
+
+    /* ─ Char library toggle ─ */
+    this.on('btn-char-lib-toggle', 'click', () => {
+      const grid = document.getElementById('char-library-grid');
+      grid?.classList.toggle('hidden');
+      const btn = document.getElementById('btn-char-lib-toggle');
+      if (btn) btn.textContent = grid?.classList.contains('hidden') ? 'Mostrar' : 'Ocultar';
     });
 
     /* ─ Character upload ─ */
@@ -999,6 +1212,7 @@ class StickerApp {
         const src = ev.target.result;
         this.globalCharImg = src;
         this.updateCharPreviewInEditor(src);
+        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
         if (this.selectedId) {
           const s = this.stickers.find(s => s.id === this.selectedId);
           if (s) { s.charImg = src; this.renderSheet(); this.saveToStorage(); }
@@ -1007,7 +1221,6 @@ class StickerApp {
       reader.readAsDataURL(file);
     });
 
-    /* ─ Change / remove char ─ */
     this.on('btn-change-char', 'click', () => document.getElementById('char-file-input')?.click());
     this.on('btn-remove-char', 'click', () => {
       if (this.selectedId) {
@@ -1015,6 +1228,7 @@ class StickerApp {
         if (s) { s.charImg = null; this.renderSheet(); this.saveToStorage(); }
       }
       this.updateCharPreviewInEditor(null);
+      document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
     });
 
     /* ─ Icon upload ─ */
@@ -1064,7 +1278,7 @@ class StickerApp {
       this.saveToStorage();
     });
 
-    /* ─ Sheet settings modal ─ */
+    /* ─ Sheet settings ─ */
     this.on('btn-apply-sheet-settings', 'click', () => {
       const ps = document.getElementById('paper-size');
       if (ps) this.sheetConfig.paperSize = ps.value;
@@ -1093,7 +1307,7 @@ class StickerApp {
     this.bindSliderLabel('sticker-gap-slider',  'sticker-gap-val', 'px');
     this.bindSliderLabel('sheet-margin-slider', 'sheet-margin-val','px');
 
-    /* ─ Save template modal ─ */
+    /* ─ Save template ─ */
     this.on('btn-do-save-template', 'click', () => {
       const nameEl = document.getElementById('template-name-input');
       const catEl  = document.getElementById('template-cat-select');
@@ -1127,11 +1341,15 @@ class StickerApp {
       const btn = document.getElementById('btn-do-export');
       if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
       try {
-        await this.doExport();
+        if (this.exportFormat === 'svg') {
+          await this.doExportSVG();
+        } else {
+          await this.doExport();
+        }
       } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-download"></i> Descargar'; }
+        document.getElementById('modal-export').classList.add('hidden');
       }
-      document.getElementById('modal-export').classList.add('hidden');
     });
 
     /* ─ Template categories ─ */
@@ -1155,38 +1373,22 @@ class StickerApp {
         document.getElementById(modalId)?.classList.add('hidden'));
     });
 
-    /* Close on overlay click */
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', e => {
         if (e.target === overlay) overlay.classList.add('hidden');
       });
     });
 
-    /* ─ Position buttons ─ */
-    document.querySelectorAll('.pos-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    /* ─ Position / align / deco buttons ─ */
+    ['pos-btn', 'align-btn', 'deco-btn'].forEach(cls => {
+      document.querySelectorAll('.' + cls).forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.' + cls).forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
       });
     });
 
-    /* ─ Align buttons ─ */
-    document.querySelectorAll('.align-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-
-    /* ─ Deco buttons ─ */
-    document.querySelectorAll('.deco-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.deco-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-
-    /* ─ Hide global actions initially ─ */
     const ga = document.getElementById('global-actions');
     if (ga) ga.style.display = 'none';
   }
@@ -1200,9 +1402,7 @@ class StickerApp {
     const slider = document.getElementById(sliderId);
     const label  = document.getElementById(labelId);
     if (slider && label) {
-      slider.addEventListener('input', () => {
-        label.textContent = slider.value + suffix;
-      });
+      slider.addEventListener('input', () => { label.textContent = slider.value + suffix; });
     }
   }
 }
